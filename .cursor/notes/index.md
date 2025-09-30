@@ -56,6 +56,7 @@ pixelate_v10/
 - `index.md` - This overview and navigation file
 - `image_processing.md` - Detailed documentation of the multi-stage image processing pipeline, algorithms, and dependencies
 - `ui_components.md` - Complete breakdown of UI layout, controls, styling, and event handling
+- `js_conversion_analysis.md` - Analysis of converting from Python/Pyodide to pure JavaScript implementation
 
 ## Quick Reference
 

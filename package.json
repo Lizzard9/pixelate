@@ -1,0 +1,40 @@
+{
+  "name": "pixelate-editor",
+  "version": "2.0.0",
+  "description": "A modern web-based image pixelation tool with retro gaming aesthetics",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  },
+  "keywords": [
+    "image-processing",
+    "pixelation",
+    "retro",
+    "snes",
+    "canvas"
+  ],
+  "author": "Sebastian Schmittner",
+  "license": "MIT",
+  "dependencies": {
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "jimp": "^1.6.0",
+    "exifreader": "^4.32.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "jsdom": "^27.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
