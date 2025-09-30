@@ -37,6 +37,10 @@
 - **Styling**: Bootstrap form control with file type restriction
 - **Icon**: Upload icon with label
 - **Purpose**: Image upload with visual feedback
+- **Drag & Drop**: Full-window drag and drop support for image files
+  - **Visual Feedback**: Animated overlay with dashed border and message
+  - **File Validation**: Only accepts image file types
+  - **Integration**: Uses same loading logic as file input
 
 ### Action Buttons (Bootstrap styled)
 
@@ -152,6 +156,7 @@
 - **Secondary**: Gray gradient for secondary actions
 - **Background**: Light gray (#f8f9fa)
 - **Console**: Terminal green (#00ff00) on black (#000000)
+- **Drag & Drop**: Semi-transparent purple overlay with animated pulse effect
 
 ### Responsive Design
 
@@ -162,17 +167,22 @@
 - **Canvas**: Responsive scaling with object-fit contain
 - **Grid**: Bootstrap responsive grid system
 
-## Event Handling (main.js)
+## Event Handling (PixelateApp.js)
 
-### File Input Change
+### File Input Change & Drag & Drop
 
-- **Trigger**: File selection
-- **Handler**: Event listener in `main.js`
+- **Triggers**: File selection or drag & drop
+- **Handler**: Event listeners in `PixelateApp.js`
+- **Drag & Drop Features**:
+  - Prevents default browser behavior for all drag events
+  - Visual feedback with animated overlay during drag over
+  - File type validation (images only)
+  - Error handling for invalid files
 - **Actions**:
   - Enable buttons
   - Store filename
-  - Extract metadata via `extractImageMetadata()`
-  - Load and display image via `loadImage()`
+  - Extract metadata via `MetadataHandler`
+  - Load and display image via `CanvasManager`
 
 ### Slider Input
 
@@ -183,10 +193,10 @@
 
 ### Processing Flow
 
-1. User uploads image → File input handler (`main.js`)
+1. User uploads image (file input or drag & drop) → File handler (`PixelateApp.js`)
 2. User adjusts parameters → Slider updates (inline handlers)
-3. User clicks "Run" → `pixelize()` execution (`main.js`)
-4. User clicks "Save" → `saveImage()` export (`main.js`)
+3. User clicks "Run" → Image processing pipeline (`ImageProcessor.js`)
+4. User clicks "Save" → Image export with metadata preservation (`PixelateApp.js`)
 
 ## Accessibility & UX Improvements
 
@@ -196,3 +206,8 @@
 - **Console feedback**: Real-time processing status
 - **Responsive design**: Mobile-first approach with touch-friendly controls
 - **Loading states**: Button states change based on image availability
+- **Drag & Drop UX**:
+  - Full-window drop zone for easy file dropping
+  - Clear visual feedback with animated overlay
+  - Helpful text instructions during drag over
+  - Error messages for invalid file types

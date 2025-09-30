@@ -113,6 +113,51 @@ body {
   border-color: #667eea;
 }
 
+/* Drag and Drop Styles */
+.drag-over {
+  position: relative;
+}
+
+.drag-over::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(102, 126, 234, 0.1);
+  border: 3px dashed #667eea;
+  z-index: 1000;
+  pointer-events: none;
+  animation: dragPulse 1s ease-in-out infinite alternate;
+}
+
+.drag-over::after {
+  content: "Drop image here to load";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(102, 126, 234, 0.95);
+  color: white;
+  padding: 20px 40px;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  z-index: 1001;
+  pointer-events: none;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes dragPulse {
+  0% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
 @media (max-width: 991px) {
   .editor-container {
     flex-direction: column-reverse;
