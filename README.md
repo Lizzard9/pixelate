@@ -92,13 +92,6 @@ npm run test:coverage
 npm run test:ui
 ```
 
-Test files include:
-
-- Unit tests for image processing algorithms
-- Integration tests with real images
-- Metadata extraction validation
-- UI interaction testing
-
 ### Dependencies
 
 [See package.json](./package.json)
@@ -128,14 +121,3 @@ This means:
 - ⚠️ Any derivative works must also be licensed under AGPL-3.0
 
 See the [LICENSE](LICENSE) file for full details.
-
-## Acknowledgments
-
-- Built with modern web technologies and Canvas API
-- Inspired by retro gaming aesthetics and SNES graphics
-- Uses median cut algorithm for color quantization
-- Metadata handling powered by ExifReader
-
-## Support
-
-For questions, issues, or contributions, please use the GitHub issue tracker.
