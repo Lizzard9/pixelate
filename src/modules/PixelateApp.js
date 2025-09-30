@@ -16,6 +16,8 @@ export class PixelateApp {
     this.currentImage = null;
     this.currentMetadata = null;
     this.originalFileName = null;
+    this.metadataModal = null; // Store Bootstrap modal instance
+    this.fallbackModal = null; // Store fallback modal references
   }
 
   /**
@@ -284,77 +286,134 @@ export class PixelateApp {
       metadataContent.innerHTML = formattedMetadata;
     }
 
-    // Set up copy button functionality
-    const copyBtn = document.getElementById("copyMetadataBtn");
-    if (copyBtn) {
-      copyBtn.onclick = () => this.copyMetadataToClipboard();
+    // Get modal element
+    const metadataModalElement = document.getElementById("metadataModal");
+    if (!metadataModalElement) {
+      console.error("Metadata modal element not found");
+      return;
     }
 
-    // Show the modal using Bootstrap
-    const metadataModal = document.getElementById("metadataModal");
-    if (metadataModal) {
-      // Try multiple approaches to show the modal
-      if (typeof window.bootstrap !== "undefined" && window.bootstrap.Modal) {
-        const modal = new window.bootstrap.Modal(metadataModal);
-        modal.show();
-      } else if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
-        const modal = new bootstrap.Modal(metadataModal);
-        modal.show();
-      } else {
-        // Fallback: use data attributes to trigger modal
-        metadataModal.classList.add("show");
-        metadataModal.style.display = "block";
-        metadataModal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("modal-open");
-
-        // Add backdrop
-        const backdrop = document.createElement("div");
-        backdrop.className = "modal-backdrop fade show";
-        backdrop.id = "metadata-modal-backdrop";
-        document.body.appendChild(backdrop);
-
-        // Close modal when clicking backdrop or close button
-        const closeModal = () => {
-          metadataModal.classList.remove("show");
-          metadataModal.style.display = "none";
-          metadataModal.setAttribute("aria-hidden", "true");
-          document.body.classList.remove("modal-open");
-          const existingBackdrop = document.getElementById(
-            "metadata-modal-backdrop"
-          );
-          if (existingBackdrop) {
-            existingBackdrop.remove();
-          }
-        };
-
-        backdrop.addEventListener("click", closeModal);
-        const closeBtn = metadataModal.querySelector(
-          '.btn-close, [data-bs-dismiss="modal"]'
-        );
-        if (closeBtn) {
-          closeBtn.addEventListener("click", closeModal);
-        }
+    // Initialize or reuse Bootstrap modal instance
+    if (typeof window.bootstrap !== "undefined" && window.bootstrap.Modal) {
+      // Dispose of existing modal instance if it exists
+      if (this.metadataModal) {
+        this.metadataModal.dispose();
       }
+
+      // Create new modal instance
+      this.metadataModal = new window.bootstrap.Modal(metadataModalElement, {
+        backdrop: true,
+        keyboard: true,
+        focus: true,
+      });
+
+      // Show the modal
+      this.metadataModal.show();
+    } else if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+      // Dispose of existing modal instance if it exists
+      if (this.metadataModal) {
+        this.metadataModal.dispose();
+      }
+
+      // Create new modal instance
+      this.metadataModal = new bootstrap.Modal(metadataModalElement, {
+        backdrop: true,
+        keyboard: true,
+        focus: true,
+      });
+
+      // Show the modal
+      this.metadataModal.show();
+    } else {
+      // Fallback: manual modal implementation
+      this.showModalFallback(metadataModalElement);
     }
   }
 
   /**
-   * Copy metadata to clipboard
+   * Fallback modal implementation when Bootstrap is not available
+   * @param {HTMLElement} modalElement - The modal element
    */
-  async copyMetadataToClipboard() {
-    if (!this.currentMetadata) return;
+  showModalFallback(modalElement) {
+    // Clean up any existing fallback modal
+    this.hideModalFallback();
 
-    try {
-      const textMetadata = this.metadataHandler.getMetadataAsText(
-        this.currentMetadata
-      );
-      await navigator.clipboard.writeText(textMetadata);
-      this.uiController.addConsoleOutput("Metadata copied to clipboard");
-    } catch (error) {
-      console.error("Failed to copy metadata:", error);
-      this.uiController.addConsoleOutput(
-        "Failed to copy metadata to clipboard"
-      );
+    // Show modal
+    modalElement.classList.add("show");
+    modalElement.style.display = "block";
+    modalElement.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+
+    // Add backdrop
+    const backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop fade show";
+    backdrop.id = "metadata-modal-backdrop";
+    document.body.appendChild(backdrop);
+
+    // Store references for cleanup
+    this.fallbackModal = {
+      element: modalElement,
+      backdrop: backdrop,
+    };
+
+    // Close modal function
+    const closeModal = () => this.hideModalFallback();
+
+    // Add event listeners
+    backdrop.addEventListener("click", closeModal);
+
+    // Handle close buttons
+    const closeButtons = modalElement.querySelectorAll(
+      '.btn-close, [data-bs-dismiss="modal"]'
+    );
+    closeButtons.forEach((btn) => {
+      btn.addEventListener("click", closeModal);
+    });
+
+    // Handle escape key
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        closeModal();
+        document.removeEventListener("keydown", handleEscape);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+
+    // Store escape handler for cleanup
+    this.fallbackModal.escapeHandler = handleEscape;
+  }
+
+  /**
+   * Hide fallback modal
+   */
+  hideModalFallback() {
+    if (this.fallbackModal) {
+      // Remove modal display
+      this.fallbackModal.element.classList.remove("show");
+      this.fallbackModal.element.style.display = "none";
+      this.fallbackModal.element.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-open");
+
+      // Remove backdrop
+      if (
+        this.fallbackModal.backdrop &&
+        this.fallbackModal.backdrop.parentNode
+      ) {
+        this.fallbackModal.backdrop.parentNode.removeChild(
+          this.fallbackModal.backdrop
+        );
+      }
+
+      // Remove escape key handler
+      if (this.fallbackModal.escapeHandler) {
+        document.removeEventListener(
+          "keydown",
+          this.fallbackModal.escapeHandler
+        );
+      }
+
+      // Clear reference
+      this.fallbackModal = null;
     }
   }
 

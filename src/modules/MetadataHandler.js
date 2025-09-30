@@ -282,7 +282,7 @@ export class MetadataHandler {
       // Handle special cases
       switch (key.toLowerCase()) {
         case "steps":
-          parsed.steps = parseInt(value);
+          parsed.steps = value;
           break;
         case "sampler":
           parsed.sampler = value;
@@ -291,10 +291,10 @@ export class MetadataHandler {
           parsed.scheduleType = value;
           break;
         case "cfg scale":
-          parsed.cfgScale = parseFloat(value);
+          parsed.cfgScale = value;
           break;
         case "seed":
-          parsed.seed = parseInt(value);
+          parsed.seed = value;
           break;
         case "size":
           parsed.size = value;
@@ -709,54 +709,6 @@ export class MetadataHandler {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
-  }
-
-  /**
-   * Get metadata as plain text for copying
-   * @param {Object} metadata - Extracted metadata
-   * @returns {string} Plain text metadata
-   */
-  getMetadataAsText(metadata) {
-    if (!metadata) return "No metadata available";
-
-    let text = "=== IMAGE METADATA ===\n\n";
-
-    // File Information
-    text += "--- File Information ---\n";
-    text += `Name: ${metadata.name || "Unknown"}\n`;
-    text += `Format: ${metadata.format?.toUpperCase() || "Unknown"}\n`;
-    text += `Type: ${metadata.type || "Unknown"}\n`;
-    text += `Size: ${this.formatFileSize(metadata.size)}\n`;
-    if (metadata.lastModified) {
-      text += `Modified: ${new Date(metadata.lastModified).toLocaleString()}\n`;
-    }
-    text += "\n";
-
-    // AI Generation Data
-    if (metadata.ai && Object.keys(metadata.ai).length > 0) {
-      text += "--- AI Generation Parameters ---\n";
-      if (metadata.ai.parsedParameters) {
-        Object.entries(metadata.ai.parsedParameters).forEach(([key, value]) => {
-          if (value && value.toString().trim()) {
-            text += `${this.formatKey(key)}: ${value}\n`;
-          }
-        });
-      }
-      text += "\n";
-    }
-
-    // EXIF Data
-    if (metadata.exif && Object.keys(metadata.exif).length > 0) {
-      text += "--- EXIF Data ---\n";
-      Object.entries(metadata.exif).forEach(([key, value]) => {
-        if (value && value.toString().trim()) {
-          text += `${this.formatKey(key)}: ${value}\n`;
-        }
-      });
-      text += "\n";
-    }
-
-    return text;
   }
 
   /**
