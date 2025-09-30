@@ -1,13 +1,17 @@
-# Pixelate Editor
-
-A modern web-based image pixelation tool with retro gaming aesthetics, specifically designed to create SNES-style graphics from modern images.
-
+[![Build and Deploy to GitHub Pages](https://github.com/Lizzard9/pixelate/actions/workflows/node.js.yml/badge.svg)](https://github.com/Lizzard9/pixelate/actions/workflows/node.js.yml)
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow.svg)
 ![Canvas API](https://img.shields.io/badge/Canvas-API-orange.svg)
 
-## Features
+# Pixelate Editor
+
+This is a pure JS web-based image pixelation tool with retro gaming aesthetics, specifically designed to create SNES-style graphics from modern images.
+The original idea and python implementation is by [n_Arno](https://civitai.com/user/n_Arno) to be found on [CivitAi](https://civitai.com/models/1994335).
+
+## Docs
+
+[Check AI notes.](./.cursor/notes/index.md)
 
 ### Core Image Processing
 
@@ -16,22 +20,6 @@ A modern web-based image pixelation tool with retro gaming aesthetics, specifica
 - **RGB555 Conversion**: SNES-style color space conversion with bit manipulation
 - **SNES Resolution Cropping**: Center crop to authentic 256x224 resolution
 - **Metadata Preservation**: Extract and preserve image metadata including AI generation parameters
-
-### User Interface
-
-- **Modern Design**: Bootstrap 5-based responsive interface
-- **Drag & Drop**: Intuitive image upload with visual feedback
-- **Real-time Preview**: Instant preview of processing effects
-- **Export Options**: High-quality PNG export with metadata preservation
-- **Processing Feedback**: Loading states and progress indicators
-
-### Technical Features
-
-- **Pure JavaScript**: No external image processing dependencies
-- **Canvas API**: Native browser image manipulation for optimal performance
-- **ESM Modules**: Modern module system with clean separation of concerns
-- **Comprehensive Testing**: Full test suite with real image validation
-- **Browser Compatible**: Works in all modern browsers without plugins
 
 ## Installation
 
@@ -61,9 +49,6 @@ A modern web-based image pixelation tool with retro gaming aesthetics, specifica
    npm run dev
    ```
 
-4. **Open in browser**
-   Navigate to `http://localhost:5173`
-
 ### Production Build
 
 ```bash
@@ -75,7 +60,7 @@ npm run preview
 
 ### Basic Workflow
 
-1. **Upload Image**: Drag and drop an image file or click to select
+1. **Load Image**: Drag and drop an image file or click to select (stays in your browser, no upload)
 2. **Configure Settings**:
    - **Pixelation Scale**: Choose scale factor (2x-16x)
    - **Color Count**: Set number of colors (4-256)
@@ -84,56 +69,13 @@ npm run preview
 3. **Process**: Click "Pixelate Image" to apply effects
 4. **Export**: Download the processed image as PNG
 
-### Advanced Features
+### Metadata Extraction
 
-#### Metadata Extraction
-
-The tool automatically extracts and displays image metadata, including:
+The tool automatically extracts and can display image metadata, including:
 
 - AI generation parameters (Stable Diffusion, etc.)
-- Camera EXIF data
+- EXIF data
 - Image dimensions and format information
-
-#### SNES-Style Processing
-
-For authentic retro gaming aesthetics:
-
-- Enable RGB555 conversion for 15-bit color depth
-- Use SNES cropping for correct aspect ratio
-- Apply moderate pixelation (4x-8x scale)
-- Limit colors to 16-64 for authentic palette
-
-## Architecture
-
-### Modern JavaScript Implementation
-
-The project uses a clean, modular architecture with ES6+ features:
-
-- **PixelateApp.js**: Main application coordinator managing the processing pipeline
-- **ImageProcessor.js**: Core image processing using pure Canvas API
-- **MetadataHandler.js**: Image metadata extraction using ExifReader
-- **UIController.js**: UI state management and event handling
-- **CanvasManager.js**: Canvas display and manipulation operations
-
-### Processing Pipeline
-
-1. **Image Loading**: File upload → Canvas ImageData conversion
-2. **Downscaling**: Canvas drawImage with configurable scale factor
-3. **Color Quantization**: Median cut algorithm implementation
-4. **RGB555 Conversion**: Bit manipulation for SNES color simulation
-5. **SNES Cropping**: Center crop to 256x224 resolution
-6. **Export**: Canvas to PNG blob with metadata preservation
-
-## Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Create production build
-- `npm run preview` - Preview production build
-- `npm run test` - Run test suite
-- `npm run test:ui` - Run tests with UI
-- `npm run test:coverage` - Generate coverage report
 
 ### Testing
 
@@ -159,6 +101,8 @@ Test files include:
 
 ### Dependencies
 
+[See package.json](./package.json)
+
 #### Runtime Dependencies
 
 - **Bootstrap 5.3.8**: UI framework and responsive design
@@ -170,29 +114,6 @@ Test files include:
 - **Vite 7.1.7**: Build tool and development server
 - **Vitest 3.2.4**: Testing framework
 - **jsdom 27.0.0**: DOM simulation for testing
-
-## Browser Compatibility
-
-- Chrome 88+
-- Firefox 85+
-- Safari 14+
-- Edge 88+
-
-Requires Canvas API support and ES6+ JavaScript features.
-
-## Performance
-
-### Bundle Size
-
-- **Production Build**: ~100KB (97% smaller than previous Python implementation)
-- **Runtime Dependencies**: Minimal overhead with native Canvas API
-- **Load Time**: Fast initial load with no runtime compilation
-
-### Processing Speed
-
-- **Native Performance**: Direct Canvas API manipulation
-- **Memory Efficient**: No large runtime dependencies
-- **Responsive UI**: Non-blocking processing with progress feedback
 
 ## License
 
