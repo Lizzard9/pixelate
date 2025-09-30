@@ -712,23 +712,366 @@ export class MetadataHandler {
   }
 
   /**
-   * Preserve metadata when saving (simplified version)
-   * For now, we'll just return the original blob since full metadata preservation
-   * in the browser is complex and would require additional libraries
+   * Preserve metadata when saving by writing PNG tEXt chunks
    * @param {Blob} imageBlob - The processed image blob
    * @param {Object} metadata - Original metadata
-   * @returns {Promise<Blob>} Blob with preserved metadata (simplified)
+   * @returns {Promise<Blob>} Blob with preserved metadata
    */
   async preserveMetadata(imageBlob, metadata) {
-    // TODO: Implement full metadata preservation
-    // This would require PNG chunk manipulation or EXIF writing libraries
-    // For now, we'll just return the image blob
+    if (!metadata) {
+      console.log("No metadata to preserve");
+      return imageBlob;
+    }
 
-    console.log(
-      "Metadata preservation not yet implemented, saving without metadata"
-    );
-    console.log("Original metadata was:", metadata);
+    try {
+      // Convert blob to ArrayBuffer
+      const arrayBuffer = await imageBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
 
-    return imageBlob;
+      // Check if it's a PNG file
+      if (!this.isPNG(uint8Array)) {
+        console.log("Not a PNG file, cannot preserve metadata in this format");
+        return imageBlob;
+      }
+
+      // Create PNG with metadata
+      const pngWithMetadata = await this.addMetadataToPNG(uint8Array, metadata);
+      
+      console.log("Successfully preserved metadata in PNG file");
+      return new Blob([pngWithMetadata], { type: 'image/png' });
+      
+    } catch (error) {
+      console.warn("Failed to preserve metadata:", error);
+      console.log("Saving without metadata");
+      return imageBlob;
+    }
+  }
+
+  /**
+   * Check if the data is a PNG file
+   * @param {Uint8Array} data - Image data
+   * @returns {boolean} True if PNG
+   */
+  isPNG(data) {
+    // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    const pngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    
+    if (data.length < 8) return false;
+    
+    for (let i = 0; i < 8; i++) {
+      if (data[i] !== pngSignature[i]) return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Add metadata to PNG as tEXt chunks
+   * @param {Uint8Array} pngData - Original PNG data
+   * @param {Object} metadata - Metadata to add
+   * @returns {Uint8Array} PNG data with metadata
+   */
+  async addMetadataToPNG(pngData, metadata) {
+    const chunks = this.parsePNGChunks(pngData);
+    const metadataChunks = this.createMetadataChunks(metadata);
+    
+    // Insert metadata chunks before IEND chunk
+    const iendIndex = chunks.findIndex(chunk => chunk.type === 'IEND');
+    if (iendIndex === -1) {
+      throw new Error('Invalid PNG: no IEND chunk found');
+    }
+    
+    // Insert metadata chunks before IEND
+    chunks.splice(iendIndex, 0, ...metadataChunks);
+    
+    // Rebuild PNG
+    return this.buildPNG(chunks);
+  }
+
+  /**
+   * Parse PNG chunks
+   * @param {Uint8Array} data - PNG data
+   * @returns {Array} Array of chunk objects
+   */
+  parsePNGChunks(data) {
+    const chunks = [];
+    let offset = 8; // Skip PNG signature
+    
+    while (offset < data.length) {
+      if (offset + 8 > data.length) break;
+      
+      // Read chunk length (4 bytes, big-endian)
+      const length = (data[offset] << 24) | (data[offset + 1] << 16) | 
+                    (data[offset + 2] << 8) | data[offset + 3];
+      
+      // Read chunk type (4 bytes)
+      const type = String.fromCharCode(data[offset + 4], data[offset + 5], 
+                                      data[offset + 6], data[offset + 7]);
+      
+      // Read chunk data
+      const chunkData = data.slice(offset + 8, offset + 8 + length);
+      
+      // Read CRC (4 bytes)
+      const crc = data.slice(offset + 8 + length, offset + 12 + length);
+      
+      chunks.push({
+        type,
+        data: chunkData,
+        crc,
+        length
+      });
+      
+      offset += 12 + length; // 4 (length) + 4 (type) + length (data) + 4 (crc)
+    }
+    
+    return chunks;
+  }
+
+  /**
+   * Create metadata chunks for PNG
+   * @param {Object} metadata - Metadata object
+   * @returns {Array} Array of tEXt chunk objects
+   */
+  createMetadataChunks(metadata) {
+    const chunks = [];
+    
+    // Create tEXt chunks for various metadata
+    const textData = this.prepareTextMetadata(metadata);
+    
+    for (const [keyword, text] of Object.entries(textData)) {
+      if (text && text.length > 0) {
+        const chunk = this.createTextChunk(keyword, text);
+        if (chunk) chunks.push(chunk);
+      }
+    }
+    
+    return chunks;
+  }
+
+  /**
+   * Prepare text metadata for PNG tEXt chunks
+   * @param {Object} metadata - Original metadata
+   * @returns {Object} Key-value pairs for tEXt chunks
+   */
+  prepareTextMetadata(metadata) {
+    const textData = {};
+    
+    // Add file information
+    if (metadata.name) {
+      textData['Source'] = metadata.name;
+    }
+    
+    // Add AI generation parameters if available
+    if (metadata.ai && metadata.ai.parsedParameters) {
+      const params = metadata.ai.parsedParameters;
+      
+      if (params.positivePrompt) {
+        textData['Positive Prompt'] = params.positivePrompt;
+      }
+      
+      if (params.negativePrompt) {
+        textData['Negative Prompt'] = params.negativePrompt;
+      }
+      
+      if (params.steps) {
+        textData['Steps'] = params.steps.toString();
+      }
+      
+      if (params.sampler) {
+        textData['Sampler'] = params.sampler;
+      }
+      
+      if (params.cfgScale) {
+        textData['CFG Scale'] = params.cfgScale.toString();
+      }
+      
+      if (params.seed) {
+        textData['Seed'] = params.seed.toString();
+      }
+      
+      if (params.model) {
+        textData['Model'] = params.model;
+      }
+      
+      if (params.size) {
+        textData['Size'] = params.size;
+      }
+      
+      // Combine all parameters as a single chunk for compatibility
+      const allParams = [];
+      if (params.positivePrompt) allParams.push(params.positivePrompt);
+      if (params.negativePrompt) allParams.push(`Negative prompt: ${params.negativePrompt}`);
+      
+      const paramParts = [];
+      if (params.steps) paramParts.push(`Steps: ${params.steps}`);
+      if (params.sampler) paramParts.push(`Sampler: ${params.sampler}`);
+      if (params.scheduleType) paramParts.push(`Schedule type: ${params.scheduleType}`);
+      if (params.cfgScale) paramParts.push(`CFG scale: ${params.cfgScale}`);
+      if (params.seed) paramParts.push(`Seed: ${params.seed}`);
+      if (params.size) paramParts.push(`Size: ${params.size}`);
+      if (params.model) paramParts.push(`Model: ${params.model}`);
+      if (params.modelHash) paramParts.push(`Model hash: ${params.modelHash}`);
+      if (params.vae) paramParts.push(`VAE: ${params.vae}`);
+      if (params.vaeHash) paramParts.push(`VAE hash: ${params.vaeHash}`);
+      if (params.version) paramParts.push(`Version: ${params.version}`);
+      
+      if (paramParts.length > 0) {
+        allParams.push(paramParts.join(', '));
+      }
+      
+      if (allParams.length > 0) {
+        textData['parameters'] = allParams.join('\n');
+      }
+    }
+    
+    // Add EXIF data if available
+    if (metadata.exif) {
+      for (const [key, value] of Object.entries(metadata.exif)) {
+        if (value && typeof value === 'string' && value.length > 0) {
+          textData[`EXIF:${key}`] = value;
+        }
+      }
+    }
+    
+    // Add processing information
+    textData['Software'] = 'Pixelate Editor v2.0';
+    textData['Processing Date'] = new Date().toISOString();
+    
+    return textData;
+  }
+
+  /**
+   * Create a PNG tEXt chunk
+   * @param {string} keyword - Keyword (max 79 characters)
+   * @param {string} text - Text content
+   * @returns {Object} Chunk object
+   */
+  createTextChunk(keyword, text) {
+    try {
+      // Ensure keyword is valid (1-79 characters, Latin-1)
+      if (!keyword || keyword.length === 0 || keyword.length > 79) {
+        console.warn(`Invalid keyword length: ${keyword}`);
+        return null;
+      }
+      
+      // Convert strings to bytes
+      const keywordBytes = this.stringToLatin1Bytes(keyword);
+      const textBytes = this.stringToLatin1Bytes(text);
+      
+      // Create chunk data: keyword + null separator + text
+      const chunkData = new Uint8Array(keywordBytes.length + 1 + textBytes.length);
+      chunkData.set(keywordBytes, 0);
+      chunkData[keywordBytes.length] = 0; // null separator
+      chunkData.set(textBytes, keywordBytes.length + 1);
+      
+      // Calculate CRC
+      const typeBytes = this.stringToLatin1Bytes('tEXt');
+      const crcData = new Uint8Array(typeBytes.length + chunkData.length);
+      crcData.set(typeBytes, 0);
+      crcData.set(chunkData, typeBytes.length);
+      
+      const crc = this.calculateCRC32(crcData);
+      const crcBytes = new Uint8Array(4);
+      crcBytes[0] = (crc >>> 24) & 0xFF;
+      crcBytes[1] = (crc >>> 16) & 0xFF;
+      crcBytes[2] = (crc >>> 8) & 0xFF;
+      crcBytes[3] = crc & 0xFF;
+      
+      return {
+        type: 'tEXt',
+        data: chunkData,
+        crc: crcBytes,
+        length: chunkData.length
+      };
+    } catch (error) {
+      console.warn(`Failed to create tEXt chunk for ${keyword}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Convert string to Latin-1 bytes
+   * @param {string} str - Input string
+   * @returns {Uint8Array} Latin-1 bytes
+   */
+  stringToLatin1Bytes(str) {
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+      const charCode = str.charCodeAt(i);
+      // Convert to Latin-1, replacing non-Latin-1 characters with '?'
+      bytes[i] = charCode <= 255 ? charCode : 63; // 63 = '?'
+    }
+    return bytes;
+  }
+
+  /**
+   * Build PNG from chunks
+   * @param {Array} chunks - Array of chunk objects
+   * @returns {Uint8Array} Complete PNG data
+   */
+  buildPNG(chunks) {
+    // Calculate total size
+    let totalSize = 8; // PNG signature
+    for (const chunk of chunks) {
+      totalSize += 12 + chunk.length; // 4 (length) + 4 (type) + data + 4 (crc)
+    }
+    
+    const result = new Uint8Array(totalSize);
+    let offset = 0;
+    
+    // Write PNG signature
+    const signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    result.set(signature, offset);
+    offset += 8;
+    
+    // Write chunks
+    for (const chunk of chunks) {
+      // Write length (big-endian)
+      result[offset] = (chunk.length >>> 24) & 0xFF;
+      result[offset + 1] = (chunk.length >>> 16) & 0xFF;
+      result[offset + 2] = (chunk.length >>> 8) & 0xFF;
+      result[offset + 3] = chunk.length & 0xFF;
+      offset += 4;
+      
+      // Write type
+      const typeBytes = this.stringToLatin1Bytes(chunk.type);
+      result.set(typeBytes, offset);
+      offset += 4;
+      
+      // Write data
+      result.set(chunk.data, offset);
+      offset += chunk.length;
+      
+      // Write CRC
+      result.set(chunk.crc, offset);
+      offset += 4;
+    }
+    
+    return result;
+  }
+
+  /**
+   * Calculate CRC32 for PNG chunks
+   * @param {Uint8Array} data - Data to calculate CRC for
+   * @returns {number} CRC32 value
+   */
+  calculateCRC32(data) {
+    // CRC32 table (standard PNG CRC table)
+    if (!this.crcTable) {
+      this.crcTable = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let j = 0; j < 8; j++) {
+          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        this.crcTable[i] = c;
+      }
+    }
+    
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < data.length; i++) {
+      crc = this.crcTable[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0; // Ensure unsigned 32-bit
   }
 }

@@ -4,6 +4,13 @@ All notable changes to the Pixelate Editor project will be documented in this fi
 
 ## WIP
 
+- **IMPLEMENTED: Image metadata preservation in PNG files**
+  - Fully implemented PNG tEXt chunk writing for metadata preservation
+  - Preserves AI generation parameters (prompts, settings, model info) in output PNG files
+  - Preserves EXIF data from original images as PNG tEXt chunks
+  - Maintains compatibility with Stable Diffusion and other AI image generators
+  - Adds processing information (software name, processing date) to output files
+  - Robust PNG chunk parsing and reconstruction with proper CRC32 validation
 - Added comprehensive image metadata display functionality
   - New "View Metadata" button in the UI toolbar
   - Bootstrap modal dialog for organized metadata presentation
@@ -50,3 +57,6 @@ All notable changes to the Pixelate Editor project will be documented in this fi
   - Updated to use modern GitHub Pages deployment actions (`actions/deploy-pages@v4`)
   - Added proper permissions for GitHub Pages deployment
   - Added job dependency to ensure build completes before deploy
+- Fixed build configuration to generate relative paths for GitHub Pages deployment
+  - Added `base: './'` to Vite config to generate relative asset paths
+  - Resolves issue with absolute paths (`/assets/...`) not working in GitHub Pages subpath deployments

@@ -1,23 +1,24 @@
-import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { resolve } from "path";
+import { defineConfig } from "vite";
 
 export default defineConfig({
-  root: '.',
+  root: ".",
+  base: "./",
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
-      }
-    }
+        main: resolve(__dirname, "index.html"),
+      },
+    },
   },
   server: {
     port: 3000,
-    open: true
+    open: true,
   },
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: ['./src/test/setup.js']
-  }
+    setupFiles: ["./src/test/setup.js"],
+  },
 });

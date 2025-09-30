@@ -2,17 +2,18 @@
 
 ## Overview
 
-The application implements a multi-stage image processing pipeline designed to create retro-style pixelated images, particularly targeting SNES-era graphics aesthetics.
+The application implements a multi-stage image processing pipeline designed to create retro-style pixelated images, particularly targeting SNES-era graphics aesthetics. The current implementation (v2.0) uses pure JavaScript with Canvas API for processing and comprehensive metadata preservation.
 
 ## Processing Stages
 
 ### 1. Image Input & Metadata Extraction
 
-- **Location**: `extractImageMetadata()` function in `main.js`
+- **Location**: `MetadataHandler.js` - `extractMetadata()` method
 - **Process**:
-  - Loads image file as ArrayBuffer
-  - Extracts PIL metadata (format, mode, size, EXIF, PNG info)
-  - Preserves metadata for later restoration during save
+  - Uses ExifReader library to extract comprehensive metadata
+  - Supports EXIF data, PNG text chunks, and AI generation parameters
+  - Parses Stable Diffusion parameters (prompts, settings, model info)
+  - Preserves metadata for restoration during save
 
 ### 2. Canvas Loading
 
@@ -68,12 +69,15 @@ Two methods available:
 
 ### 5. Export with Metadata Preservation
 
-- **Location**: `saveImage()` function in `main.js`
+- **Location**: `MetadataHandler.js` - `preserveMetadata()` method
 - **Process**:
-  - Reads canvas data as RGBA array
-  - Converts to PIL Image
-  - Restores original PNG metadata using PngInfo
-  - Exports as PNG with preserved metadata
+  - Parses PNG chunks from processed image blob
+  - Creates PNG tEXt chunks for metadata preservation
+  - Preserves AI generation parameters (prompts, settings, model info)
+  - Preserves EXIF data as PNG tEXt chunks
+  - Adds processing information (software, date)
+  - Rebuilds PNG with proper CRC32 validation
+  - Exports as PNG with comprehensive metadata preservation
 
 ## Key Algorithms
 
@@ -98,10 +102,10 @@ Centers the crop area while respecting image boundaries.
 
 ## Dependencies & Libraries
 
-- **LIBIMAGEQUANT**: High-quality color quantization (via custom PIL wheel)
-- **NumPy**: Efficient array operations for image data
-- **PIL/Pillow**: Core image processing functionality
-- **Pyodide**: Enables Python execution in browser environment
+- **ExifReader**: Comprehensive metadata extraction from image files
+- **Canvas API**: Native browser image processing and manipulation
+- **Bootstrap**: UI framework and styling
+- **Vite**: Build tool and development server
 
 ## Performance Considerations
 
