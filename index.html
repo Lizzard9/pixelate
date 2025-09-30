@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixelate Editor</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="main.css">
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+</head>
+
+<body>
+  <div class="container-fluid p-0">
+    <div class="row g-0 editor-container">
+      <!-- Toolbar Sidebar -->
+      <div class="col-lg-4 col-xl-3">
+        <div class="card toolbar-card m-3 shadow">
+          <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-palette me-2"></i>Pixelate Editor
+            </h5>
+          </div>
+          <div class="card-body">
+
+            <!-- File Input -->
+            <div class="mb-4">
+              <label for="imageFileInput" class="form-label fw-bold">
+                <i class="bi bi-upload me-2"></i>Select Image
+              </label>
+              <input type="file" class="form-control" id="imageFileInput" accept="image/*">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mb-4">
+              <div class="d-grid gap-2">
+                <button id="reloadBtn" class="btn btn-secondary" onclick="loadImage()" disabled>
+                  <i class="bi bi-arrow-clockwise me-2"></i>Reload Original
+                </button>
+              </div>
+            </div>
+
+            <!-- Scale Control -->
+            <div class="mb-4">
+              <label for="scale" class="form-label fw-bold">
+                <i class="bi bi-zoom-in me-2"></i>Scale
+              </label>
+              <div class="range-container">
+                <input type="range" class="form-range" id="scale" min="2" max="16" value="4" step="2"
+                  oninput="this.nextElementSibling.textContent = this.value">
+                <span class="range-output">4</span>
+              </div>
+            </div>
+
+            <!-- Colors Control -->
+            <div class="mb-4">
+              <label for="colors" class="form-label fw-bold">
+                <i class="bi bi-palette2 me-2"></i>Colors
+              </label>
+              <div class="range-container">
+                <input type="range" class="form-range" id="colors" min="4" max="256" value="16" step="2"
+                  oninput="this.nextElementSibling.textContent = this.value">
+                <span class="range-output">16</span>
+              </div>
+            </div>
+
+            <!-- Processing Options -->
+            <div class="mb-4">
+              <h6 class="fw-bold mb-3">
+                <i class="bi bi-gear me-2"></i>Processing Options
+              </h6>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="quant" name="quant" checked>
+                <label class="form-check-label" for="quant">
+                  Quantize colors
+                </label>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="rgb555" name="rgb555" checked>
+                <label class="form-check-label" for="rgb555">
+                  Apply RGB555
+                </label>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="snescrop" name="snescrop">
+                <label class="form-check-label" for="snescrop">
+                  Crop to SNES size
+                </label>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="rescale" name="rescale" checked>
+                <label class="form-check-label" for="rescale">
+                  Rescale post-processing
+                </label>
+              </div>
+            </div>
+
+            <!-- Process Button -->
+            <div class="mb-4">
+              <div class="d-grid">
+                <button class="btn btn-primary btn-lg" onclick="pixelize()">
+                  <i class="bi bi-play-fill me-2"></i>Run Pixelation
+                </button>
+              </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="mb-4">
+              <div class="d-grid">
+                <button id="saveBtn" class="btn btn-success" onclick="saveImage()" disabled>
+                  <i class="bi bi-download me-2"></i>Save Image
+                </button>
+              </div>
+            </div>
+
+            <!-- Console Output -->
+            <div class="mb-3">
+              <label for="consoleOutput" class="form-label fw-bold">
+                <i class="bi bi-terminal me-2"></i>Console Output
+              </label>
+              <textarea id="consoleOutput" class="form-control console-output" rows="12" disabled></textarea>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Image Area -->
+      <div class="col-lg-8 col-xl-9">
+        <div class="image-area">
+          <div class="canvas-container">
+            <canvas id="canvas" height="500" width="500"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Custom JS -->
+  <script src="main.js"></script>
+</body>
+
+</html>
