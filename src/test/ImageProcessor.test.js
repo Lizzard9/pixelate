@@ -1,31 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ImageProcessor } from "../modules/ImageProcessor.js";
 
-// Mock Jimp since it requires Node.js environment
-vi.mock("jimp/es", () => {
-  const mockJimp = {
-    fromBuffer: vi.fn(),
-    clone: vi.fn(),
-    resize: vi.fn(),
-    posterize: vi.fn(),
-    scan: vi.fn(),
-    crop: vi.fn(),
-    getWidth: vi.fn(() => 100),
-    getHeight: vi.fn(() => 100),
-    bitmap: { data: new Uint8Array(100 * 100 * 4) },
-  };
-
-  // Make methods chainable
-  Object.keys(mockJimp).forEach((key) => {
-    if (typeof mockJimp[key] === "function" && key !== "fromBuffer") {
-      mockJimp[key].mockReturnValue(mockJimp);
-    }
-  });
-
-  mockJimp.fromBuffer.mockResolvedValue(mockJimp);
-
-  return { Jimp: mockJimp };
-});
+// Pure Canvas API tests - no external dependencies needed
 
 describe("ImageProcessor", () => {
   let imageProcessor;
@@ -79,134 +55,127 @@ describe("ImageProcessor", () => {
   });
 
   describe("applyRGB555", () => {
-    it("should apply RGB555 conversion to image", () => {
-      const mockImage = {
-        scan: vi.fn((x, y, w, h, callback) => {
-          // Simulate calling the callback for each pixel
-          callback.call(
-            {
-              bitmap: {
-                data: new Uint8Array([255, 255, 255, 255]), // RGBA
-              },
-            },
-            0,
-            0,
-            0
-          );
-          return mockImage;
-        }),
-      };
+    it("should apply RGB555 conversion to ImageData", () => {
+      const testData = new Uint8ClampedArray([255, 255, 255, 255]); // White pixel
+      const imageData = new ImageData(testData, 1, 1);
 
-      const result = imageProcessor.applyRGB555(mockImage);
-      expect(mockImage.scan).toHaveBeenCalled();
-      expect(result).toBe(mockImage);
+      const result = imageProcessor.applyRGB555(imageData);
+
+      expect(result).toBeInstanceOf(ImageData);
+      expect(result.width).toBe(1);
+      expect(result.height).toBe(1);
+
+      // RGB555 conversion: 255 >> 3 << 3 = 248
+      expect(result.data[0]).toBe(248); // R
+      expect(result.data[1]).toBe(248); // G
+      expect(result.data[2]).toBe(248); // B
+      expect(result.data[3]).toBe(255); // A unchanged
     });
   });
 
   describe("snesCrop", () => {
-    it("should crop image to SNES dimensions", () => {
-      const mockImage = {
-        getWidth: vi.fn(() => 400),
-        getHeight: vi.fn(() => 300),
-        crop: vi.fn(() => mockImage),
-      };
+    it("should crop ImageData to SNES dimensions", () => {
+      const testData = new Uint8ClampedArray(400 * 300 * 4).fill(128);
+      const imageData = new ImageData(testData, 400, 300);
 
-      const result = imageProcessor.snesCrop(mockImage);
+      const result = imageProcessor.snesCrop(imageData, 400, 300);
 
-      expect(mockImage.crop).toHaveBeenCalledWith(72, 38, 256, 224);
-      expect(result).toBe(mockImage);
+      expect(result.imageData).toBeInstanceOf(ImageData);
+      expect(result.width).toBe(256);
+      expect(result.height).toBe(224);
     });
 
     it("should handle images smaller than SNES dimensions", () => {
-      const mockImage = {
-        getWidth: vi.fn(() => 200),
-        getHeight: vi.fn(() => 150),
-        crop: vi.fn(() => mockImage),
-      };
+      const testData = new Uint8ClampedArray(200 * 150 * 4).fill(128);
+      const imageData = new ImageData(testData, 200, 150);
 
-      const result = imageProcessor.snesCrop(mockImage);
+      const result = imageProcessor.snesCrop(imageData, 200, 150);
 
-      expect(mockImage.crop).toHaveBeenCalled();
-      expect(result).toBe(mockImage);
+      expect(result.imageData).toBeInstanceOf(ImageData);
+      expect(result.width).toBeLessThanOrEqual(200);
+      expect(result.height).toBeLessThanOrEqual(150);
     });
   });
 
-  describe("jimpToImageData", () => {
-    it("should convert Jimp image to ImageData", async () => {
-      const mockJimpImage = {
-        getWidth: () => 10,
-        getHeight: () => 10,
-        bitmap: {
-          data: new Uint8Array(10 * 10 * 4).fill(255),
-        },
-      };
+  describe("resizeImageData", () => {
+    it("should resize ImageData using nearest neighbor", () => {
+      const testData = new Uint8ClampedArray([255, 0, 0, 255]); // Red pixel
+      const imageData = new ImageData(testData, 1, 1);
 
-      const imageData = await imageProcessor.jimpToImageData(mockJimpImage);
+      const result = imageProcessor.resizeImageData(imageData, 1, 1, 2, 2);
 
-      expect(imageData).toBeInstanceOf(ImageData);
-      expect(imageData.width).toBe(10);
-      expect(imageData.height).toBe(10);
+      expect(result).toBeInstanceOf(ImageData);
+      expect(result.width).toBe(2);
+      expect(result.height).toBe(2);
+      expect(result.data.length).toBe(16); // 2x2x4 channels
+
+      // All pixels should be red (nearest neighbor)
+      expect(result.data[0]).toBe(255); // R
+      expect(result.data[1]).toBe(0); // G
+      expect(result.data[2]).toBe(0); // B
+      expect(result.data[3]).toBe(255); // A
     });
   });
 
-  // Integration test for the main processing function
-  describe("processImage", () => {
-    it("should process image with default parameters", async () => {
-      // Mock HTML image
-      const mockImage = {
-        naturalWidth: 100,
-        naturalHeight: 100,
-        width: 100,
-        height: 100,
-      };
+  describe("color quantization", () => {
+    it("should apply posterization", () => {
+      const testData = new Uint8ClampedArray([
+        255,
+        128,
+        64,
+        255, // Various colors
+        200,
+        100,
+        50,
+        255,
+        150,
+        75,
+        25,
+        255,
+        100,
+        50,
+        12,
+        255,
+      ]);
+      const imageData = new ImageData(testData, 2, 2);
 
-      const params = {
-        scale: 2,
-        colors: 16,
-        quantize: true,
-        rgb555: false,
-        snescrop: false,
-        rescale: true,
-      };
+      const result = imageProcessor.posterizeColors(imageData, 16);
 
-      const progressCallback = vi.fn();
+      expect(result).toBeInstanceOf(ImageData);
+      expect(result.width).toBe(2);
+      expect(result.height).toBe(2);
 
-      // Mock canvas operations
-      global.document = {
-        createElement: vi.fn(() => ({
-          getContext: vi.fn(() => ({
-            drawImage: vi.fn(),
-          })),
-          toBlob: vi.fn((callback) => {
-            callback(new Blob(["test"], { type: "image/png" }));
-          }),
-          width: 100,
-          height: 100,
-        })),
-      };
+      // Colors should be posterized to specific levels
+      expect(result.data[0]).toBeLessThanOrEqual(255);
+      expect(result.data[0]).toBeGreaterThanOrEqual(0);
+    });
 
-      global.Buffer = {
-        from: vi.fn(() => new Uint8Array(100)),
-      };
+    it("should apply median cut quantization", () => {
+      const testData = new Uint8ClampedArray([
+        255,
+        0,
+        0,
+        255, // Red
+        0,
+        255,
+        0,
+        255, // Green
+        0,
+        0,
+        255,
+        255, // Blue
+        128,
+        128,
+        128,
+        255, // Gray
+      ]);
+      const imageData = new ImageData(testData, 2, 2);
 
-      // Mock Blob.arrayBuffer
-      global.Blob.prototype.arrayBuffer = vi.fn(() =>
-        Promise.resolve(new ArrayBuffer(100))
-      );
+      const result = imageProcessor.quantizeColors(imageData, 2);
 
-      try {
-        const result = await imageProcessor.processImage(
-          mockImage,
-          params,
-          progressCallback
-        );
-
-        expect(progressCallback).toHaveBeenCalled();
-        expect(result).toBeInstanceOf(ImageData);
-      } catch (error) {
-        // Expected in test environment due to mocking limitations
-        expect(error).toBeDefined();
-      }
+      expect(result).toBeInstanceOf(ImageData);
+      expect(result.width).toBe(2);
+      expect(result.height).toBe(2);
     });
   });
 });

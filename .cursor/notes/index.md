@@ -8,48 +8,68 @@ This is a web-based image pixelation tool that allows users to upload images and
 
 ```
 pixelate_v10/
-├── index.html              # Main HTML structure (155 lines)
-├── main.css               # All styling and responsive design (142 lines)
-├── main.js                # Complete JavaScript functionality (254 lines)
-├── pillow-10.2.0-cp312-cp312-pyodide_2024_0_wasm32.whl  # Custom PIL wheel with LIBIMAGEQUANT
+├── index.html              # Main HTML structure
+├── src/
+│   ├── main.js            # Application entry point
+│   ├── main.css           # Styling and responsive design
+│   ├── modules/           # ESM modules
+│   │   ├── PixelateApp.js       # Main application coordinator
+│   │   ├── ImageProcessor.js    # Pure Canvas API image processing
+│   │   ├── MetadataHandler.js   # Image metadata extraction
+│   │   ├── UIController.js      # UI state management
+│   │   └── CanvasManager.js     # Canvas operations
+│   └── test/              # Test files
+├── package.json           # Dependencies and scripts
 └── .cursor/
     ├── rules/
     │   └── notes.mdc       # Notes management rules
     └── notes/
         ├── index.md        # This file
         ├── ui_components.md # UI layout, styling, and components
-        └── image_processing.md # Processing pipeline and algorithms
+        ├── image_processing.md # Processing pipeline and algorithms
+        ├── js_conversion_analysis.md # Python to JS conversion analysis
+        └── browser_compatibility_lessons.md # Critical lessons about browser libraries
 ```
 
 ## Key Components
 
 ### Application Architecture
 
-- **Type**: Single-page web application with separated concerns
-- **Technologies**: HTML5, CSS3, JavaScript, Bootstrap 5, Pyodide (Python in browser)
+- **Type**: Modern single-page web application with ESM modules
+- **Technologies**: HTML5, CSS3, JavaScript (ES6+), Bootstrap 5, Canvas API
 - **Purpose**: Image processing and pixelation with retro gaming aesthetics
+- **Architecture**: Clean separation of concerns with modular design
 
-#### File Breakdown
+#### Current Implementation (v2.0)
 
-- **`index.html`**: Clean HTML structure with Bootstrap components
-- **`main.css`**: Modern responsive styling with gradients and mobile optimization
-- **`main.js`**: Complete functionality including Pyodide integration and image processing
+- **Pure JavaScript**: No external image processing dependencies
+- **Canvas API**: Native browser image manipulation
+- **ESM Modules**: Modern module system with clean imports
+- **Vite Build**: Fast development and optimized production builds
 
 ### Core Features
 
 - Image upload and display
-- Pixelation with configurable scale
-- Color quantization (4-256 colors)
+- Pixelation with configurable scale (2x-16x)
+- Color quantization (4-256 colors) with median cut algorithm
 - RGB555 color space conversion (SNES-style)
 - SNES resolution cropping (256x224)
-- Image metadata preservation
+- Image metadata extraction and preservation
 - PNG export with metadata
 
-### Dependencies
+### Current Dependencies
 
-- **Pyodide**: Python runtime in browser
-- **PIL/Pillow**: Image processing (custom build with LIBIMAGEQUANT)
-- **NumPy**: Array operations for image data
+- **Bootstrap**: UI framework and styling
+- **Bootstrap Icons**: Icon set
+- **ExifReader**: Image metadata extraction
+- **Vite**: Build tool and dev server
+- **Vitest**: Testing framework
+
+### Removed Dependencies (Lessons Learned)
+
+- ❌ **Jimp**: Incompatible with browsers (see browser_compatibility_lessons.md)
+- ❌ **Pyodide**: Replaced with native JavaScript for better performance
+- ❌ **PIL/Pillow**: Server-side library, not suitable for browsers
 
 ## Notes Files
 
@@ -57,11 +77,14 @@ pixelate_v10/
 - `image_processing.md` - Detailed documentation of the multi-stage image processing pipeline, algorithms, and dependencies
 - `ui_components.md` - Complete breakdown of UI layout, controls, styling, and event handling
 - `js_conversion_analysis.md` - Analysis of converting from Python/Pyodide to pure JavaScript implementation
+- `browser_compatibility_lessons.md` - **CRITICAL**: Lessons about Jimp incompatibility and browser library selection
 
 ## Quick Reference
 
-- **Main processing function**: `pixelize()` in `main.js`
-- **Image loading**: `loadImage()` and file input handler in `main.js`
-- **Save functionality**: `saveImage()` in `main.js`
-- **UI styling**: All responsive design and modern styling in `main.css`
-- **HTML structure**: Clean Bootstrap-based layout in `index.html`
+- **Main application**: `PixelateApp.js` - Application coordinator
+- **Image processing**: `ImageProcessor.js` - Pure Canvas API implementation
+- **Metadata handling**: `MetadataHandler.js` - ExifReader-based extraction
+- **UI management**: `UIController.js` - State and interaction handling
+- **Canvas operations**: `CanvasManager.js` - Display and canvas management
+- **Entry point**: `src/main.js` - Application initialization
+- **HTML structure**: `index.html` - Bootstrap-based layout

@@ -1,7 +1,8 @@
-import { Jimp } from "jimp/es";
+// Pure Canvas API implementation - no external dependencies needed
 
 /**
- * Handles image processing operations using Jimp and custom algorithms
+ * Handles image processing operations using pure Canvas API
+ * Browser-native implementation with no external dependencies
  */
 export class ImageProcessor {
   constructor() {
@@ -16,7 +17,7 @@ export class ImageProcessor {
   }
 
   /**
-   * Process an image with pixelation and retro effects
+   * Process an image with pixelation and retro effects using pure Canvas API
    * @param {HTMLImageElement} image - Source image
    * @param {Object} params - Processing parameters
    * @param {Function} progressCallback - Progress callback function
@@ -26,82 +27,71 @@ export class ImageProcessor {
     progressCallback("Starting image processing...");
 
     try {
-      // Convert HTML image to Jimp image
-      const jimpImage = await this.htmlImageToJimp(image);
-      progressCallback(
-        `Loaded image: ${jimpImage.getWidth()}x${jimpImage.getHeight()}`
-      );
+      // Create working canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = image.naturalWidth || image.width;
+      canvas.height = image.naturalHeight || image.height;
+      
+      // Draw original image
+      ctx.drawImage(image, 0, 0);
+      progressCallback(`Loaded image: ${canvas.width}x${canvas.height}`);
 
-      let processedImage = jimpImage.clone();
+      let currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let currentWidth = canvas.width;
+      let currentHeight = canvas.height;
 
       // Step 1: Downscale for pixelation effect
       if (params.scale > 1) {
-        const newWidth = Math.floor(processedImage.getWidth() / params.scale);
-        const newHeight = Math.floor(processedImage.getHeight() / params.scale);
-
-        processedImage = processedImage.resize(
-          newWidth,
-          newHeight,
-          "nearestNeighbor"
-        );
-        progressCallback(
-          `Downscaled by ${params.scale}x to ${newWidth}x${newHeight}`
-        );
+        const newWidth = Math.floor(currentWidth / params.scale);
+        const newHeight = Math.floor(currentHeight / params.scale);
+        
+        currentImageData = this.resizeImageData(currentImageData, currentWidth, currentHeight, newWidth, newHeight);
+        currentWidth = newWidth;
+        currentHeight = newHeight;
+        
+        progressCallback(`Downscaled by ${params.scale}x to ${newWidth}x${newHeight}`);
       }
 
       // Step 2: Color quantization
       if (params.colors < 256) {
         if (params.quantize) {
-          // Use Jimp's built-in quantization (similar to LIBIMAGEQUANT)
-          processedImage = processedImage.posterize(
-            this.calculatePosterizeLevels(params.colors)
-          );
-          progressCallback(
-            `Quantized to ~${params.colors} colors using posterize`
-          );
+          currentImageData = this.quantizeColors(currentImageData, params.colors);
+          progressCallback(`Quantized to ${params.colors} colors`);
         } else {
-          // Use median cut quantization (fallback to posterize for now)
-          processedImage = processedImage.posterize(
-            this.calculatePosterizeLevels(params.colors)
-          );
-          progressCallback(
-            `Applied color reduction to ${params.colors} colors`
-          );
+          currentImageData = this.posterizeColors(currentImageData, params.colors);
+          progressCallback(`Applied color reduction to ${params.colors} colors`);
         }
       }
 
       // Step 3: RGB555 conversion (SNES color simulation)
       if (params.rgb555) {
-        processedImage = this.applyRGB555(processedImage);
+        currentImageData = this.applyRGB555(currentImageData);
         progressCallback("Applied RGB555 color conversion");
       }
 
       // Step 4: SNES cropping
       if (params.snescrop) {
-        processedImage = this.snesCrop(processedImage);
-        progressCallback(
-          `Cropped to SNES size: ${processedImage.getWidth()}x${processedImage.getHeight()}`
-        );
+        const croppedData = this.snesCrop(currentImageData, currentWidth, currentHeight);
+        currentImageData = croppedData.imageData;
+        currentWidth = croppedData.width;
+        currentHeight = croppedData.height;
+        progressCallback(`Cropped to SNES size: ${currentWidth}x${currentHeight}`);
       }
 
       // Step 5: Upscale back to larger size
       if (params.rescale && params.scale > 1) {
-        const finalWidth = processedImage.getWidth() * params.scale;
-        const finalHeight = processedImage.getHeight() * params.scale;
-
-        processedImage = processedImage.resize(
-          finalWidth,
-          finalHeight,
-          "nearestNeighbor"
-        );
+        const finalWidth = currentWidth * params.scale;
+        const finalHeight = currentHeight * params.scale;
+        
+        currentImageData = this.resizeImageData(currentImageData, currentWidth, currentHeight, finalWidth, finalHeight);
         progressCallback(`Rescaled to ${finalWidth}x${finalHeight}`);
       }
 
-      // Convert back to ImageData for canvas display
-      const imageData = await this.jimpToImageData(processedImage);
       progressCallback("Processing complete!");
-
-      return imageData;
+      return currentImageData;
+      
     } catch (error) {
       console.error("Image processing error:", error);
       throw new Error(`Image processing failed: ${error.message}`);
@@ -109,50 +99,93 @@ export class ImageProcessor {
   }
 
   /**
-   * Convert HTML Image element to Jimp image
-   * @param {HTMLImageElement} htmlImage - HTML image element
-   * @returns {Promise<Jimp>} Jimp image
+   * Resize ImageData using nearest neighbor algorithm for pixelation
+   * @param {ImageData} imageData - Source image data
+   * @param {number} srcWidth - Source width
+   * @param {number} srcHeight - Source height
+   * @param {number} destWidth - Destination width
+   * @param {number} destHeight - Destination height
+   * @returns {ImageData} Resized image data
    */
-  async htmlImageToJimp(htmlImage) {
-    return new Promise((resolve, reject) => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      canvas.width = htmlImage.naturalWidth || htmlImage.width;
-      canvas.height = htmlImage.naturalHeight || htmlImage.height;
-
-      ctx.drawImage(htmlImage, 0, 0);
-
-      canvas.toBlob(async (blob) => {
-        try {
-          const arrayBuffer = await blob.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const jimpImage = await Jimp.fromBuffer(buffer);
-          resolve(jimpImage);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
+  resizeImageData(imageData, srcWidth, srcHeight, destWidth, destHeight) {
+    const srcData = imageData.data;
+    const destData = new Uint8ClampedArray(destWidth * destHeight * 4);
+    
+    const xRatio = srcWidth / destWidth;
+    const yRatio = srcHeight / destHeight;
+    
+    for (let y = 0; y < destHeight; y++) {
+      for (let x = 0; x < destWidth; x++) {
+        const srcX = Math.floor(x * xRatio);
+        const srcY = Math.floor(y * yRatio);
+        
+        const srcIndex = (srcY * srcWidth + srcX) * 4;
+        const destIndex = (y * destWidth + x) * 4;
+        
+        destData[destIndex] = srcData[srcIndex];         // R
+        destData[destIndex + 1] = srcData[srcIndex + 1]; // G
+        destData[destIndex + 2] = srcData[srcIndex + 2]; // B
+        destData[destIndex + 3] = srcData[srcIndex + 3]; // A
+      }
+    }
+    
+    return new ImageData(destData, destWidth, destHeight);
   }
 
   /**
-   * Convert Jimp image to ImageData
-   * @param {Jimp} jimpImage - Jimp image
-   * @returns {Promise<ImageData>} ImageData object
+   * Apply color quantization using median cut algorithm
+   * @param {ImageData} imageData - Source image data
+   * @param {number} colorCount - Target number of colors
+   * @returns {ImageData} Quantized image data
    */
-  async jimpToImageData(jimpImage) {
-    const width = jimpImage.getWidth();
-    const height = jimpImage.getHeight();
-    const buffer = jimpImage.bitmap.data;
+  quantizeColors(imageData, colorCount) {
+    // Simplified quantization - collect unique colors and reduce
+    const pixels = [];
+    const data = imageData.data;
+    
+    // Collect all pixels
+    for (let i = 0; i < data.length; i += 4) {
+      pixels.push([data[i], data[i + 1], data[i + 2]]);
+    }
+    
+    // Apply median cut algorithm (simplified)
+    const palette = this.medianCut(pixels, colorCount);
+    
+    // Map each pixel to nearest palette color
+    const newData = new Uint8ClampedArray(data.length);
+    for (let i = 0; i < data.length; i += 4) {
+      const pixel = [data[i], data[i + 1], data[i + 2]];
+      const nearestColor = this.findNearestColor(pixel, palette);
+      
+      newData[i] = nearestColor[0];     // R
+      newData[i + 1] = nearestColor[1]; // G
+      newData[i + 2] = nearestColor[2]; // B
+      newData[i + 3] = data[i + 3];     // A (unchanged)
+    }
+    
+    return new ImageData(newData, imageData.width, imageData.height);
+  }
 
-    // Create ImageData from the buffer
-    const imageData = new ImageData(
-      new Uint8ClampedArray(buffer),
-      width,
-      height
-    );
-    return imageData;
+  /**
+   * Apply posterization (simpler color reduction)
+   * @param {ImageData} imageData - Source image data
+   * @param {number} colorCount - Target number of colors
+   * @returns {ImageData} Posterized image data
+   */
+  posterizeColors(imageData, colorCount) {
+    const levels = this.calculatePosterizeLevels(colorCount);
+    const step = 255 / (levels - 1);
+    const data = imageData.data;
+    const newData = new Uint8ClampedArray(data.length);
+    
+    for (let i = 0; i < data.length; i += 4) {
+      newData[i] = Math.round(data[i] / step) * step;         // R
+      newData[i + 1] = Math.round(data[i + 1] / step) * step; // G
+      newData[i + 2] = Math.round(data[i + 2] / step) * step; // B
+      newData[i + 3] = data[i + 3];                           // A
+    }
+    
+    return new ImageData(newData, imageData.width, imageData.height);
   }
 
   /**
@@ -173,56 +206,126 @@ export class ImageProcessor {
   }
 
   /**
-   * Apply median cut color quantization
-   * @param {Jimp} image - Jimp image
-   * @param {number} colorCount - Target color count
-   * @returns {Promise<Jimp>} Quantized image
+   * Median cut algorithm for color quantization
+   * @param {Array} pixels - Array of [r, g, b] pixel values
+   * @param {number} colorCount - Target number of colors
+   * @returns {Array} Array of [r, g, b] palette colors
    */
-  async medianCutQuantization(image, colorCount) {
-    // For now, use Jimp's built-in quantization as a fallback
-    // TODO: Implement proper median cut algorithm
-    return image.posterize(this.calculatePosterizeLevels(colorCount));
+  medianCut(pixels, colorCount) {
+    if (colorCount === 1 || pixels.length === 0) {
+      // Return average color
+      const avgR = pixels.reduce((sum, p) => sum + p[0], 0) / pixels.length || 0;
+      const avgG = pixels.reduce((sum, p) => sum + p[1], 0) / pixels.length || 0;
+      const avgB = pixels.reduce((sum, p) => sum + p[2], 0) / pixels.length || 0;
+      return [[Math.round(avgR), Math.round(avgG), Math.round(avgB)]];
+    }
+
+    // Find the channel with the greatest range
+    const ranges = [0, 1, 2].map(channel => {
+      const values = pixels.map(p => p[channel]);
+      return Math.max(...values) - Math.min(...values);
+    });
+    
+    const splitChannel = ranges.indexOf(Math.max(...ranges));
+    
+    // Sort pixels by the channel with greatest range
+    pixels.sort((a, b) => a[splitChannel] - b[splitChannel]);
+    
+    // Split in half
+    const mid = Math.floor(pixels.length / 2);
+    const left = pixels.slice(0, mid);
+    const right = pixels.slice(mid);
+    
+    // Recursively quantize each half
+    const leftColors = this.medianCut(left, Math.floor(colorCount / 2));
+    const rightColors = this.medianCut(right, Math.ceil(colorCount / 2));
+    
+    return [...leftColors, ...rightColors];
   }
 
   /**
-   * Apply RGB555 color conversion (SNES-style)
-   * @param {Jimp} image - Jimp image
-   * @returns {Jimp} Image with RGB555 conversion applied
+   * Find the nearest color in a palette
+   * @param {Array} pixel - [r, g, b] pixel color
+   * @param {Array} palette - Array of [r, g, b] palette colors
+   * @returns {Array} Nearest [r, g, b] color from palette
    */
-  applyRGB555(image) {
-    return image.scan(
-      0,
-      0,
-      image.getWidth(),
-      image.getHeight(),
-      function (x, y, idx) {
-        // Apply RGB555 conversion: reduce to 5 bits per channel
-        this.bitmap.data[idx] = (this.bitmap.data[idx] >> 3) << 3; // Red
-        this.bitmap.data[idx + 1] = (this.bitmap.data[idx + 1] >> 3) << 3; // Green
-        this.bitmap.data[idx + 2] = (this.bitmap.data[idx + 2] >> 3) << 3; // Blue
-        // Alpha channel remains unchanged
+  findNearestColor(pixel, palette) {
+    let minDistance = Infinity;
+    let nearestColor = palette[0];
+    
+    for (const color of palette) {
+      const distance = Math.sqrt(
+        Math.pow(pixel[0] - color[0], 2) +
+        Math.pow(pixel[1] - color[1], 2) +
+        Math.pow(pixel[2] - color[2], 2)
+      );
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestColor = color;
       }
-    );
+    }
+    
+    return nearestColor;
   }
 
   /**
-   * Crop image to SNES resolution (256x224)
-   * @param {Jimp} image - Jimp image
-   * @returns {Jimp} Cropped image
+   * Apply RGB555 color conversion (SNES-style) to ImageData
+   * @param {ImageData} imageData - Source image data
+   * @returns {ImageData} Image data with RGB555 conversion applied
    */
-  snesCrop(image) {
+  applyRGB555(imageData) {
+    const data = imageData.data;
+    const newData = new Uint8ClampedArray(data.length);
+    
+    for (let i = 0; i < data.length; i += 4) {
+      // Apply RGB555 conversion: reduce to 5 bits per channel
+      newData[i] = (data[i] >> 3) << 3;         // Red
+      newData[i + 1] = (data[i + 1] >> 3) << 3; // Green
+      newData[i + 2] = (data[i + 2] >> 3) << 3; // Blue
+      newData[i + 3] = data[i + 3];             // Alpha unchanged
+    }
+    
+    return new ImageData(newData, imageData.width, imageData.height);
+  }
+
+  /**
+   * Crop image data to SNES resolution (256x224)
+   * @param {ImageData} imageData - Source image data
+   * @param {number} width - Current width
+   * @param {number} height - Current height
+   * @returns {Object} Object with cropped imageData, width, and height
+   */
+  snesCrop(imageData, width, height) {
     const targetWidth = 256;
     const targetHeight = 224;
-    const currentWidth = image.getWidth();
-    const currentHeight = image.getHeight();
 
     // Calculate crop area (center crop)
-    const left = Math.max(0, Math.floor((currentWidth - targetWidth) / 2));
-    const top = Math.max(0, Math.floor((currentHeight - targetHeight) / 2));
-    const right = Math.min(currentWidth, left + targetWidth);
-    const bottom = Math.min(currentHeight, top + targetHeight);
+    const left = Math.max(0, Math.floor((width - targetWidth) / 2));
+    const top = Math.max(0, Math.floor((height - targetHeight) / 2));
+    const cropWidth = Math.min(targetWidth, width - left);
+    const cropHeight = Math.min(targetHeight, height - top);
 
-    return image.crop(left, top, right - left, bottom - top);
+    const srcData = imageData.data;
+    const destData = new Uint8ClampedArray(cropWidth * cropHeight * 4);
+    
+    for (let y = 0; y < cropHeight; y++) {
+      for (let x = 0; x < cropWidth; x++) {
+        const srcIndex = ((top + y) * width + (left + x)) * 4;
+        const destIndex = (y * cropWidth + x) * 4;
+        
+        destData[destIndex] = srcData[srcIndex];         // R
+        destData[destIndex + 1] = srcData[srcIndex + 1]; // G
+        destData[destIndex + 2] = srcData[srcIndex + 2]; // B
+        destData[destIndex + 3] = srcData[srcIndex + 3]; // A
+      }
+    }
+    
+    return {
+      imageData: new ImageData(destData, cropWidth, cropHeight),
+      width: cropWidth,
+      height: cropHeight
+    };
   }
 
   /**
