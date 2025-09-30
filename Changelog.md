@@ -30,3 +30,9 @@ All notable changes to the Pixelate Editor project will be documented in this fi
   - Added proper error handling for metadata extraction failures
 - Added picture drag and drop
 - Converting Functionality from python to JS
+- Fixed GitHub Actions workflow for proper GitHub Pages deployment
+  - Removed pull request trigger to only deploy on main branch commits
+  - Fixed syntax error with incorrect `with` indentation
+  - Updated to use modern GitHub Pages deployment actions (`actions/deploy-pages@v4`)
+  - Added proper permissions for GitHub Pages deployment
+  - Added job dependency to ensure build completes before deploy
