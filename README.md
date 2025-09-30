@@ -25,7 +25,7 @@ The original idea and python implementation is by [n_Arno](https://civitai.com/u
 
 ### Prerequisites
 
-- Node.js 18.0.0 or higher
+- Node.js 20.19.0 or higher (required by Vite 7.x)
 - Modern web browser with Canvas API support
 
 ### Development Setup

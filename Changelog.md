@@ -4,6 +4,11 @@ All notable changes to the Pixelate Editor project will be documented in this fi
 
 ## WIP
 
+- Updated Node.js version requirements to align with Vite 7.x
+  - Updated README.md to specify Node.js 20.19.0+ requirement (was 18.0.0+)
+  - Updated package.json engines field to require Node.js >=20.19.0
+  - Vite 7.x dropped support for Node.js 18 (end-of-life April 2025)
+  - Added Node.js version matrix testing to GitHub Actions workflow (20.x, 22.x)
 - **IMPLEMENTED: Image metadata preservation in PNG files**
   - Fully implemented PNG tEXt chunk writing for metadata preservation
   - Preserves AI generation parameters (prompts, settings, model info) in output PNG files
