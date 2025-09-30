@@ -17,6 +17,9 @@ All notable changes to the Pixelate Editor project will be documented in this fi
   - Removed copy button from modal footer
   - Removed copyMetadataToClipboard method and related text formatting
   - Simplified modal interface for better user experience
+- Added `test:run` script for one-time test execution
+  - `npm run test` continues to run in watch mode for development
+  - `npm run test:run` runs tests once and exits for CI/CD usage
 - Enhanced Stable Diffusion parameter parsing
   - Improved parsing of multi-line prompts with line breaks
   - Smart extraction of positive and negative prompts
