@@ -49,6 +49,10 @@ export class PixelateApp {
     const reloadBtn = document.getElementById("reloadBtn");
     reloadBtn?.addEventListener("click", () => this.reloadOriginalImage());
 
+    // Metadata button handler
+    const metadataBtn = document.getElementById("metadataBtn");
+    metadataBtn?.addEventListener("click", () => this.showMetadata());
+
     // Drag and drop handlers
     this.setupDragAndDrop();
   }
@@ -155,7 +159,7 @@ export class PixelateApp {
       this.canvasManager.displayImage(this.currentImage);
 
       // Enable buttons
-      this.uiController.enableButtons(["reloadBtn", "saveBtn"]);
+      this.uiController.enableButtons(["reloadBtn", "saveBtn", "metadataBtn"]);
 
       this.uiController.hideLoading();
     } catch (error) {
@@ -257,6 +261,100 @@ export class PixelateApp {
     if (this.currentImage) {
       this.canvasManager.displayImage(this.currentImage);
       this.uiController.addConsoleOutput("Original image reloaded");
+    }
+  }
+
+  /**
+   * Show metadata modal
+   */
+  showMetadata() {
+    if (!this.currentMetadata) {
+      this.uiController.addConsoleOutput("No metadata available");
+      return;
+    }
+
+    // Format metadata for display
+    const formattedMetadata = this.metadataHandler.formatMetadataForDisplay(
+      this.currentMetadata
+    );
+
+    // Update modal content
+    const metadataContent = document.getElementById("metadataContent");
+    if (metadataContent) {
+      metadataContent.innerHTML = formattedMetadata;
+    }
+
+    // Set up copy button functionality
+    const copyBtn = document.getElementById("copyMetadataBtn");
+    if (copyBtn) {
+      copyBtn.onclick = () => this.copyMetadataToClipboard();
+    }
+
+    // Show the modal using Bootstrap
+    const metadataModal = document.getElementById("metadataModal");
+    if (metadataModal) {
+      // Try multiple approaches to show the modal
+      if (typeof window.bootstrap !== "undefined" && window.bootstrap.Modal) {
+        const modal = new window.bootstrap.Modal(metadataModal);
+        modal.show();
+      } else if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(metadataModal);
+        modal.show();
+      } else {
+        // Fallback: use data attributes to trigger modal
+        metadataModal.classList.add("show");
+        metadataModal.style.display = "block";
+        metadataModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+
+        // Add backdrop
+        const backdrop = document.createElement("div");
+        backdrop.className = "modal-backdrop fade show";
+        backdrop.id = "metadata-modal-backdrop";
+        document.body.appendChild(backdrop);
+
+        // Close modal when clicking backdrop or close button
+        const closeModal = () => {
+          metadataModal.classList.remove("show");
+          metadataModal.style.display = "none";
+          metadataModal.setAttribute("aria-hidden", "true");
+          document.body.classList.remove("modal-open");
+          const existingBackdrop = document.getElementById(
+            "metadata-modal-backdrop"
+          );
+          if (existingBackdrop) {
+            existingBackdrop.remove();
+          }
+        };
+
+        backdrop.addEventListener("click", closeModal);
+        const closeBtn = metadataModal.querySelector(
+          '.btn-close, [data-bs-dismiss="modal"]'
+        );
+        if (closeBtn) {
+          closeBtn.addEventListener("click", closeModal);
+        }
+      }
+    }
+  }
+
+  /**
+   * Copy metadata to clipboard
+   */
+  async copyMetadataToClipboard() {
+    if (!this.currentMetadata) return;
+
+    try {
+      const textMetadata = this.metadataHandler.getMetadataAsText(
+        this.currentMetadata
+      );
+      await navigator.clipboard.writeText(textMetadata);
+      this.uiController.addConsoleOutput("Metadata copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy metadata:", error);
+      this.uiController.addConsoleOutput(
+        "Failed to copy metadata to clipboard"
+      );
     }
   }
 

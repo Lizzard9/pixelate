@@ -117,6 +117,15 @@
               </div>
             </div>
 
+            <!-- Metadata Button -->
+            <div class="mb-4">
+              <div class="d-grid">
+                <button id="metadataBtn" class="btn btn-info" disabled>
+                  <i class="bi bi-info-circle me-2"></i>View Metadata
+                </button>
+              </div>
+            </div>
+
             <!-- Console Output -->
             <div class="mb-3">
               <label for="consoleOutput" class="form-label fw-bold">
@@ -135,6 +144,34 @@
           <div class="canvas-container">
             <canvas id="canvas" height="500" width="500"></canvas>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metadata Modal -->
+  <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title" id="metadataModalLabel">
+            <i class="bi bi-info-circle me-2"></i>Image Metadata
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="metadataContent">
+            <div class="text-center text-muted">
+              <i class="bi bi-hourglass-split"></i>
+              Loading metadata...
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="copyMetadataBtn">
+            <i class="bi bi-clipboard me-2"></i>Copy to Clipboard
+          </button>
         </div>
       </div>
     </div>

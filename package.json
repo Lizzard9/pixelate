@@ -20,7 +20,7 @@
     "canvas"
   ],
   "author": "Sebastian Schmittner",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "dependencies": {
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
